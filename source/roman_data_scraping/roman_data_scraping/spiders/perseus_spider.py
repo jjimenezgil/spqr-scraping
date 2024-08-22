@@ -1,4 +1,5 @@
 import scrapy
+import re
 
 
 class PerseusSpider(scrapy.Spider):
@@ -8,6 +9,7 @@ class PerseusSpider(scrapy.Spider):
 
     # URL list to scrap from 
     start_urls = ["http://www.perseus.tufts.edu/hopper/collection?collection=Perseus:collection:Greco-Roman"]
+        
 
     def parse(self, response):
         # English texts links
@@ -27,26 +29,53 @@ class PerseusSpider(scrapy.Spider):
         # Get title
         title = response.xpath('//div[@id="header_text"]/h1/span[@class="title"]/text()').get()
 
-        # Section
-        section = response.xpath('//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar" and position()=2]/div/a[@class="current odd"]/span/text()').get()
+        # Get section
+        num_navbars = int(float(response.xpath('count(//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar"])').get()))
+        section = ""
+        for i in range(num_navbars):
+            txt_section = response.xpath('//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar" and position()=' + str(i+1) + ']/div/a[@class="current odd"]/span/text()').get()
+            if txt_section != None:
+                if i == 0:
+                    section = txt_section.strip()
+                else:
+                    section = section + ", " + txt_section.strip()
 
-        # Combine text and notes
-        text_list = response.xpath('//div[@class="text_container en"]/div[@class="text"]/text()').getall()
-        notes_list = response.xpath('//div[@class="text_container en"]/div[@class="footnotes en"]/p/text()').getall()
-        
-        """
+        # Get main text
+        text_list = response.xpath('//div[@class="text_container en"]/div[@class="text"]//text()').getall()
         text = ""
-        for i, paragraph in enumerate(text_list):
-            if i < len(text_list)-1:
-                text = text + paragraph + " (" + notes_list[i] + ") "
+        for i, elem in enumerate(text_list):
+            cleaned_text = re.sub(r'[\n\t\"]', ' ', elem)
+            cleaned_text = cleaned_text.strip()
+            if i == 0:
+                text = cleaned_text
             else:
-                text = text + paragraph
-        """
+                text = text + " " + cleaned_text
+        
+        text = re.sub(' +', ' ', text.strip())
+        
+        # Get notes
+        num_notes = int(float(response.xpath('count(//div[@class="text_container en"]/div[@class="footnotes en"]/p)').get()))
+        notes_list = []
 
+        if num_notes != None and num_notes > 0:
+            for i in range(num_notes):
+                note_fragments = response.xpath('//div[@class="text_container en"]/div[@class="footnotes en"]/p[position()=' + str(i + 1) + ']//text()').getall()
+                note = ""
+                for j, elem in enumerate(note_fragments):
+                    cleaned_note = re.sub(r'[\n\t\"]', ' ', elem)
+                    cleaned_note = cleaned_note.strip()
+                    if j == 0:
+                        note = "Note: " + cleaned_note
+                    else:
+                        note = note + " " + cleaned_note
+                
+                notes_list.append(note)
+
+        # Return the values that will be saved in CSV
         return {
             "author": author.strip(),
             "title": title.strip(),
-            "section": section.strip(),
-            "text": text_list,
+            "section": section,
+            "text": text,
             "notes": notes_list
         }
