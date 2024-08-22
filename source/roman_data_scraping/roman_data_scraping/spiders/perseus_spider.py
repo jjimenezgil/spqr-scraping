@@ -71,13 +71,25 @@ class PerseusSpider(scrapy.Spider):
                 
                 notes_list.append(note)
 
+        # Get test combination of text and notes
+        elements = response.xpath('//div[@class="text_container en"]/div[@class="text"]/*[self::text() or self::a]')
+        content = []
+
+        for i, elem in enumerate(elements):
+            if elem.root.tag == 'a':
+                link_text = elem.xpath('text()').get() + ' (insert_note_info_' + str(i+1) + ')'
+                content.append(link_text)
+            else:
+                content.append(elem.get())
+
         # Return the values that will be saved in CSV
         yield {
             "author": author.strip(),
             "title": title.strip(),
             "section": section,
             "text": text,
-            "notes": notes_list
+            "notes": notes_list,
+            "test_content": content
         }
 
         # Find the "next page" link
