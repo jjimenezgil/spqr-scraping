@@ -16,7 +16,7 @@ class PerseusSpider(scrapy.Spider):
         links = response.xpath('//tr[contains(@class, "trHiddenResults")]/td[contains(., "(English)") and @class="tdAuthor"]/a[@class="aResultsHeader"]')
         yield from response.follow_all(links, self.parse_texts)
 
-        # English texts embedded in lists
+        # English texts links embedded in lists
         embedded_links = response.xpath('//tr[contains(@class, "trHiddenResults")]/td[contains(., "(English)") and @class="tdAuthor"]/ul/li/a[@class="aResultsHeader"]')
         yield from response.follow_all(embedded_links, self.parse_texts)
 
@@ -72,10 +72,17 @@ class PerseusSpider(scrapy.Spider):
                 notes_list.append(note)
 
         # Return the values that will be saved in CSV
-        return {
+        yield {
             "author": author.strip(),
             "title": title.strip(),
             "section": section,
             "text": text,
             "notes": notes_list
         }
+
+        # Find the "next page" link
+        next_page = response.xpath('//div[@id="center_col"]/div[@id="header_nav"]/a[@class="arrow"][img[contains(@alt, "next")]]/@href').get()
+
+        # If a next page exists, follow the link and repeat the process
+        if next_page:
+            yield response.follow(next_page, callback=self.parse_texts)
