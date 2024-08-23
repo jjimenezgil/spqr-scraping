@@ -1,5 +1,6 @@
 import scrapy
 import re
+from lxml.html import HtmlElement
 
 
 class PerseusSpider(scrapy.Spider):
@@ -72,15 +73,16 @@ class PerseusSpider(scrapy.Spider):
                 notes_list.append(note)
 
         # Get test combination of text and notes
-        elements = response.xpath('//div[@class="text_container en"]/div[@class="text"]/*[self::text() or self::a]')
+        elements = response.xpath('//div[@class="text_container en"]/div[@class="text"]//node()')
         content = []
+        link_count = 1
 
         for i, elem in enumerate(elements):
-            if elem.root.tag == 'a':
-                link_text = elem.xpath('text()').get() + ' (insert_note_info_' + str(i+1) + ')'
-                content.append(link_text)
-            else:
-                content.append(elem.get())
+            if type(elem.root) == str:
+                content.append(elem.get().strip())
+            elif elem.root.tag == 'a' and elem.xpath('@id').get() != None and elem.xpath('@id').get().startswith('note-link'):
+                content.append('insert_note_' + str(link_count))
+                link_count = link_count + 1
 
         # Return the values that will be saved in CSV
         yield {
