@@ -1,6 +1,6 @@
 import scrapy
 import re
-from lxml.html import HtmlElement
+import json
 
 
 class PerseusSpider(scrapy.Spider):
@@ -40,19 +40,6 @@ class PerseusSpider(scrapy.Spider):
                     section = txt_section.strip()
                 else:
                     section = section + ", " + txt_section.strip()
-
-        # Get main text
-        text_list = response.xpath('//div[@class="text_container en"]/div[@class="text"]//text()').getall()
-        text = ""
-        for i, elem in enumerate(text_list):
-            cleaned_text = re.sub(r'[\n\t\"]', ' ', elem)
-            cleaned_text = cleaned_text.strip()
-            if i == 0:
-                text = cleaned_text
-            else:
-                text = text + " " + cleaned_text
-        
-        text = re.sub(' +', ' ', text.strip())
         
         # Get notes
         num_notes = int(float(response.xpath('count(//div[@class="text_container en"]/div[@class="footnotes en"]/p)').get()))
@@ -62,36 +49,50 @@ class PerseusSpider(scrapy.Spider):
             for i in range(num_notes):
                 note_fragments = response.xpath('//div[@class="text_container en"]/div[@class="footnotes en"]/p[position()=' + str(i + 1) + ']//text()').getall()
                 note = ""
-                for j, elem in enumerate(note_fragments):
-                    cleaned_note = re.sub(r'[\n\t\"]', ' ', elem)
-                    cleaned_note = cleaned_note.strip()
-                    if j == 0:
-                        note = "Note: " + cleaned_note
-                    else:
-                        note = note + " " + cleaned_note
+                for elem in note_fragments:
+                    note = note + " " + elem
                 
-                notes_list.append(note)
+                cleaned_note = re.sub(r'[\n\t]|\s+', ' ', note.strip())         
+                notes_list.append(cleaned_note)
 
-        # Get test combination of text and notes
+        # Get text
         elements = response.xpath('//div[@class="text_container en"]/div[@class="text"]//node()')
         content = []
+        text = ""
         link_count = 1
+        note_idx = None
 
         for i, elem in enumerate(elements):
             if type(elem.root) == str:
-                content.append(elem.get().strip())
+                cleaned_text = re.sub(r'[\n\t]|\[\s*\d+\s*\]', ' ', elem.get().strip())
+                if note_idx != None and i != note_idx+1 or not cleaned_text.isnumeric(): 
+                    content.append(cleaned_text)
             elif elem.root.tag == 'a' and elem.xpath('@id').get() != None and elem.xpath('@id').get().startswith('note-link'):
                 content.append('insert_note_' + str(link_count))
                 link_count = link_count + 1
+                note_idx = i
+        
+        text = ' '.join(content)
+        text = re.sub(' +', ' ', text.strip())
+
+        # Combine text and notes
+        for idx, note in enumerate(notes_list):
+            # Remove the first word if it's a number
+            words = note.split()
+            first_word = words[0]
+            if(first_word.isnumeric()):
+                note = ' '.join(words[1:])
+
+            # Put the note in the correct place
+            text_replace = "insert_note_" + str(idx+1)
+            text = text.replace(text_replace, "[Note " + str(idx+1) + ": " + note.strip() + "]", 1)
 
         # Return the values that will be saved in CSV
         yield {
             "author": author.strip(),
             "title": title.strip(),
             "section": section,
-            "text": text,
-            "notes": notes_list,
-            "test_content": content
+            "text": text
         }
 
         # Find the "next page" link
