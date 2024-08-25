@@ -60,17 +60,14 @@ class PerseusSpider(scrapy.Spider):
         content = []
         text = ""
         link_count = 1
-        note_idx = None
 
         for i, elem in enumerate(elements):
             if type(elem.root) == str:
                 cleaned_text = re.sub(r'[\n\t]|\[\s*\d+\s*\]', ' ', elem.get().strip())
-                if note_idx != None and i != note_idx+1 or not cleaned_text.isnumeric(): 
-                    content.append(cleaned_text)
+                content.append(cleaned_text)
             elif elem.root.tag == 'a' and elem.xpath('@id').get() != None and elem.xpath('@id').get().startswith('note-link'):
                 content.append('insert_note_' + str(link_count))
                 link_count = link_count + 1
-                note_idx = i
         
         text = ' '.join(content)
         text = re.sub(' +', ' ', text.strip())
@@ -80,12 +77,15 @@ class PerseusSpider(scrapy.Spider):
             # Remove the first word if it's a number
             words = note.split()
             first_word = words[0]
-            if(first_word.isnumeric()):
+            if first_word.isnumeric():
                 note = ' '.join(words[1:])
+
+            # Remove the last dot if exists
+            note = re.sub(r'\.$', '', note)
 
             # Put the note in the correct place
             text_replace = "insert_note_" + str(idx+1)
-            text = text.replace(text_replace, "[Note " + str(idx+1) + ": " + note.strip() + "]", 1)
+            text = re.sub(rf'{text_replace}\s+\d+', "[Note " + str(idx+1) + ": " + note.strip() + "]", text)
 
         # Return the values that will be saved in CSV
         yield {
