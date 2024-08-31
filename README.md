@@ -14,7 +14,7 @@ The extracted data is loaded into a CSV (which you can find in the dataset folde
 
 ## Instructions
 
-The best option is to directly download the data that can be found in the dataset folder, since the extraction process could be a long process (several hours, depending on the configuration of the settings.py), and also the ancients authors are not expected to deliver new material, so performing the complete extraction process will not add new data to the current dataset. In any case, you can follow these steps to begin the scraping: 
+The best option is to directly download the data that can be found in the dataset folder, since the extraction process could be a long process (several hours, depending on the configuration of the settings.py), and also the ancient authors are not expected to deliver new material, so performing the complete extraction process will not add new data to the current dataset. In any case, you can follow these steps to begin the scraping: 
 
 - Clone the repository and carry out all the process in a local environment (it's a long process, I tried to do it from codespaces but the connection got lost before the process ended).
 
