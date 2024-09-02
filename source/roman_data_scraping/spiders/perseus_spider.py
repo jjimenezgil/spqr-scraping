@@ -34,7 +34,7 @@ class PerseusSpider(scrapy.Spider):
         num_navbars = int(float(response.xpath('count(//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar"])').get()))
         section = ""
         for i in range(num_navbars):
-            txt_section = response.xpath('//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar" and position()=' + str(i+1) + ']/div/a[@class="current odd"]/span/text()').get()
+            txt_section = response.xpath('//div[@id="main"]/div[@id="content"]/div[@id="navbar_wrapper"]/div[@id="text_navbars"]/div[@class="navbar" and position()=' + str(i+1) + ']/div/a[contains(@class, "current")]/span/text()').get()
             if txt_section != None:
                 if i == 0:
                     section = txt_section.strip()
