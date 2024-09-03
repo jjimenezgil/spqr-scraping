@@ -42,12 +42,12 @@ class PerseusSpider(scrapy.Spider):
                     section = section + ", " + txt_section.strip()
         
         # Get notes
-        num_notes = int(float(response.xpath('count(//div[@class="text_container en"]/div[@class="footnotes en"]/p)').get()))
+        num_notes = int(float(response.xpath('count(//div[@class="text_container en" or @class="text_container eng"]/div[@class="footnotes en"]/p)').get()))
         notes_list = []
 
         if num_notes != None and num_notes > 0:
             for i in range(num_notes):
-                note_fragments = response.xpath('//div[@class="text_container en"]/div[@class="footnotes en"]/p[position()=' + str(i + 1) + ']//text()').getall()
+                note_fragments = response.xpath('//div[@class="text_container en" or @class="text_container eng"]/div[@class="footnotes en"]/p[position()=' + str(i + 1) + ']//text()').getall()
                 note = ""
                 for elem in note_fragments:
                     note = note + " " + elem
@@ -56,7 +56,7 @@ class PerseusSpider(scrapy.Spider):
                 notes_list.append(cleaned_note)
 
         # Get text
-        elements = response.xpath('//div[@class="text_container en"]/div[@class="text"]//node()')
+        elements = response.xpath('//div[@class="text_container en" or @class="text_container eng"]/div[@class="text"]//node()')
         content = []
         text = ""
         link_count = 1
